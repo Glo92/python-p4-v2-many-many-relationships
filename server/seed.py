@@ -3,9 +3,15 @@
 
 import datetime
 from app import app
-from models import db, Employee, Meeting, Project
+from models import db, Employee, Meeting, Project, employee_meetings
 
 with app.app_context():
+
+    db.session.query(employee_meetings).delete()
+    db.session.commit()
+    Employee.query.delete()
+    Meeting.query.delete()
+    Project.query.delete()
 
     # Delete all rows in tables
     Employee.query.delete()
@@ -39,5 +45,115 @@ with app.app_context():
     db.session.commit()
 
     # Many-to-many relationship between employee and meeting
+        # Add meetings to an employee
+    e1.meetings.append(m1)
+    e1.meetings.append(m2)
+    # Add employees to a meeting
+    m2.employees.append(e2)
+    m2.employees.append(e3)
+    m2.employees.append(e4)
+    db.session.commit()
 
     # Many-to-many relationship between employee and project through assignment
+
+
+# models.py
+
+# from flask_sqlalchemy import SQLAlchemy
+# from sqlalchemy import MetaData
+
+# metadata = MetaData()
+
+# db = SQLAlchemy(metadata=metadata)
+
+# class Goal(db.Model):
+#     __tablename__ = 'goals'
+
+#     id = db.Column(db.Integer, primary_key=True)
+#     title = db.Column(db.String(100), nullable=False)
+#     description = db.Column(db.Text)
+#     target_date = db.Column(db.Date)
+#     achieved = db.Column(db.Boolean, default=False)
+
+#     goals = db.relationship('Goal', backref='user', lazy=True)
+
+
+#     def to_dict(self):
+#         return {
+#             'id': self.id,
+#             'title': self.title,
+#             'description': self.description,
+#             'target_date': self.target_date,
+#             'achieved': self.achieved
+#         }
+    
+
+#     def __repr__(self):
+#         return f'<Goal {self.id}, {self.User_id}, {self.title}, {self.description}, {self.target_date}, {self.achieved}>' 
+
+# app.py
+
+# from flask import Flask, request
+# from flask_restful import Api, Resource
+# from flask_migrate import Migrate
+
+# from models import db, Goal
+
+# app  = Flask (__name__)
+# app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////home/gloria/Desktop/Development/code/phase-4/Safe-Health/backend/instance/app.db'
+
+# app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# api = Api(app)
+# migrate = Migrate(app, db)
+# db.init_app(app)
+
+
+
+class GoalListResource(Resource):
+    def get(self):
+        goals = Goal.query.all()
+        goals_list = [{'id': goal.id, 'title': goal.title, 'description': goal.description,
+                       'target_date': goal.target_date.strftime('%Y-%m-%d') if goal.target_date else None,
+                       'achieved': goal.achieved} for goal in goals]
+        return goals_list
+  
+
+    def post(self):
+        data = request.get_json()
+        new_goal = Goal(title=data['title'], description=data['description'],
+                        target_date=data['target_date'], achieved=data['achieved'])
+        db.session.add(new_goal)
+        db.session.commit()
+        return {'message': 'Goal added successfully'}, 201 
+
+
+    def put(self, goal_id):
+        data = request.get_json()
+        goal = Goal.query.get(goal_id)
+        if not goal:
+            return {'message': 'Goal not found'}, 404  
+        goal.title = data['title']
+        goal.description = data['description']
+        goal.target_date = data['target_date']
+        goal.achieved = data['achieved']
+        db.session.commit()
+        return {'message': 'Goal updated successfully'}
+
+
+    def delete(self, goal_id):
+        goal = Goal.query.get(goal_id)
+        if not goal:
+            return {'message': 'Goal not found'}, 404
+        db.session.delete(goal)
+        db.session.commit()
+        return {'message': 'Goal deleted successfully'}
+
+    
+api.add_resource(GoalListResource, '/api/goals', endpoint='goals')
+api.add_resource(GoalListResource, '/api/goals/<int:goal_id>', endpoint='goal')
+
+if __name__== '__main__':
+    app.run(port=5555,debug=True)
+
+
+ 
